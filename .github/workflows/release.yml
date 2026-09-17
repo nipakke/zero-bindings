@@ -46,9 +46,3 @@ jobs:
           create-github-releases: true
           push-git-tags: true
 
-  docs:
-    needs: release
-    permissions:
-      contents: read
-      deployments: write
-    uses: ./.github/workflows/docs.yml
