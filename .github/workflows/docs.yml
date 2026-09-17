@@ -16,7 +16,7 @@ jobs:
     environment: prod
     permissions:
       contents: read
-      deployments: write
+    environment: PROD
     steps:
       - name: Check out repository
         uses: actions/checkout@v7
