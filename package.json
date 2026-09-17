@@ -1,0 +1,88 @@
+{
+  "name": "zero-bindings",
+  "version": "0.0.8",
+  "description": "Framework-neutral Zero query and mutation bindings.",
+  "license": "MIT",
+  "author": {
+    "name": "nipakke"
+  },
+  "repository": "git+https://github.com/nipakke/zero-bindings.git",
+  "files": [
+    "src"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "main": "./src/index.ts",
+  "module": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "import": "./src/index.ts"
+    },
+    "./vue": {
+      "types": "./src/adapters/vue/index.ts",
+      "import": "./src/adapters/vue/index.ts"
+    },
+    "./experimental_nuxt": {
+      "types": "./src/adapters/nuxt/index.ts",
+      "import": "./src/adapters/nuxt/index.ts"
+    },
+    "./svelte": {
+      "types": "./src/adapters/svelte/index.ts",
+      "svelte": "./src/adapters/svelte/index.ts",
+      "default": "./src/adapters/svelte/index.ts"
+    },
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "check": "vp check && pnpm check-types",
+    "check-types": "tsc --noEmit -p tsconfig/core.json && tsc --noEmit -p tsconfig/vue.json && tsc --noEmit -p tsconfig/svelte.json && tsc --noEmit -p tsconfig/nuxt.json && tsc -p tsconfig/zero-1.7.json",
+    "test": "vp test run",
+    "test:watch": "vp test",
+    "format": "vp fmt",
+    "lint": "vp lint"
+  },
+  "devDependencies": {
+    "@changesets/cli": "3.0.3",
+    "@oxlint/plugins": "1.83.0",
+    "@rocicorp/zero": "^1.9.0",
+    "@sveltejs/vite-plugin-svelte": "^7.1.2",
+    "jsdom": "^30.0.1",
+    "nuxt": "^4.0.0",
+    "svelte": "^5.57.0",
+    "typescript": "~7.0.2",
+    "vite": "npm:@voidzero-dev/vite-plus-core@0.3.2",
+    "vite-plus": "0.3.2",
+    "vue": "^3.5.41",
+    "wrangler": "^4.133.0",
+    "zero-1.7": "npm:@rocicorp/zero@1.7.0",
+    "zero-1.8": "npm:@rocicorp/zero@1.8.0",
+    "zero-1.9": "npm:@rocicorp/zero@1.9.0"
+  },
+  "peerDependencies": {
+    "@rocicorp/zero": ">=1.7.0 <1.10.0",
+    "nuxt": "^4.0.0",
+    "svelte": "^5.0.0",
+    "vue": "^3.3.0"
+  },
+  "peerDependenciesMeta": {
+    "nuxt": {
+      "optional": true
+    },
+    "svelte": {
+      "optional": true
+    },
+    "vue": {
+      "optional": true
+    }
+  },
+  "devEngines": {
+    "packageManager": {
+      "name": "pnpm",
+      "version": "12.3.4",
+      "onFail": "warn"
+    }
+  },
+  "packageManager": "pnpm@12.3.4"
+}

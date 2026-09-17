@@ -1,0 +1,25 @@
+autoInstallPeers: false
+packages:
+  - .
+  - docs
+  - playgrounds/*
+allowBuilds:
+  "@parcel/watcher": true
+  "@rocicorp/zero-sqlite3": true
+  esbuild: true
+  protobufjs: true
+  workerd: true
+catalog:
+  vite: npm:@voidzero-dev/vite-plus-core@0.3.2
+  vitest: 5.0.0
+  vite-plus: 0.3.2
+overrides:
+  vite: "catalog:"
+  vitest: "catalog:"
+peerDependencyRules:
+  allowAny:
+    - vite
+    - vitest
+  allowedVersions:
+    vite: "*"
+    vitest: "*"

@@ -1,0 +1,23 @@
+{
+  // Composition root: shared options flow tsconfig/base.json → here →
+  // tsconfig/zero-1.7.json, and per-area programs hang off `references`.
+  // Core stays framework-free (empty `types`); framework `types` live in the
+  // adapter configs that need them. New adapter: add `tsconfig/<name>.json`
+  // plus one reference here.
+  "extends": "./tsconfig/base.json",
+  "files": [],
+  "references": [
+    {
+      "path": "./tsconfig/core.json"
+    },
+    {
+      "path": "./tsconfig/vue.json"
+    },
+    {
+      "path": "./tsconfig/svelte.json"
+    },
+    {
+      "path": "./tsconfig/nuxt.json"
+    }
+  ]
+}

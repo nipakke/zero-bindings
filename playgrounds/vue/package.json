@@ -1,0 +1,21 @@
+{
+  "name": "zero-bindings-playground-vue",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vp dev",
+    "check-types": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@rocicorp/zero": "^1.9.0",
+    "vue": "^3.5.41",
+    "zero-bindings": "workspace:*"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^6.0.9",
+    "typescript": "~7.0.2",
+    "vite": "catalog:",
+    "vite-plus": "catalog:"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "extends": "./base.json",
+  "compilerOptions": {
+    "types": ["svelte"]
+  },
+  "include": [
+    "../src/core",
+    "../src/index.ts",
+    "../src/adapters/svelte",
+    "../tests/adapters/svelte",
+    "../tests/fixtures/svelte.svelte.ts",
+    "../tests/fixtures/zero.ts",
+    "../tests/fixtures/item.ts",
+    "../tests/fixtures/rows.ts",
+    "../tests/fixtures/adapter-suite.ts"
+  ]
+}

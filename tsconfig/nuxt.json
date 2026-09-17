@@ -1,0 +1,14 @@
+{
+  "extends": "./base.json",
+  "include": [
+    "../src/core",
+    "../src/index.ts",
+    "../src/adapters/vue",
+    "../src/adapters/nuxt",
+    "../tests/adapters/nuxt",
+    "../tests/fixtures/zero.ts",
+    "../tests/fixtures/item.ts",
+    "../tests/fixtures/rows.ts",
+    "../tests/fixtures/source.ts"
+  ]
+}

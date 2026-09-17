@@ -1,0 +1,17 @@
+{
+  // Static docs Worker deployed by GitHub Actions via `wrangler deploy`.
+  // `wrangler-action` runs the `build.command` below; keep Workers Builds
+  // disconnected so Cloudflare does not deploy independently.
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "zero-bindings",
+  "compatibility_date": "2026-09-17",
+  // Makes local `wrangler deploy`/`wrangler dev` self-contained: the assets
+  // directory is produced by the build rather than assumed to exist.
+  "build": {
+    "command": "pnpm --filter docs build",
+  },
+  "assets": {
+    "directory": "./docs/dist",
+    "not_found_handling": "404-page",
+  },
+}

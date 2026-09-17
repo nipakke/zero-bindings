@@ -1,0 +1,11 @@
+{
+  "extends": "../tsconfig.json",
+  "include": ["../src", "../tests"],
+  "compilerOptions": {
+    "types": ["svelte"],
+    "paths": {
+      "@rocicorp/zero": ["../node_modules/zero-1.7/out/zero/src/zero.d.ts"],
+      "@rocicorp/zero/bindings": ["../node_modules/zero-1.7/out/zero/src/bindings.d.ts"]
+    }
+  }
+}

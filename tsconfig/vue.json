@@ -1,0 +1,15 @@
+{
+  "extends": "./base.json",
+  "include": [
+    "../src/core",
+    "../src/index.ts",
+    "../src/adapters/vue",
+    "../tests/adapters/vue",
+    "../tests/types",
+    "../tests/fixtures/vue.ts",
+    "../tests/fixtures/zero.ts",
+    "../tests/fixtures/item.ts",
+    "../tests/fixtures/rows.ts",
+    "../tests/fixtures/adapter-suite.ts"
+  ]
+}

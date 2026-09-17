@@ -1,0 +1,46 @@
+---
+title: Get started
+---
+
+import { CardGrid, LinkCard } from "@astrojs/starlight/components";
+
+Install the package, choose the adapter for your framework, and connect it to the Zero client you already use.
+
+## Install
+
+```sh title="Vue"
+pnpm add zero-bindings @rocicorp/zero vue
+```
+
+```sh title="Svelte"
+pnpm add zero-bindings @rocicorp/zero svelte
+```
+
+`@rocicorp/zero` is a peer dependency; this package supports `>=1.7.0 <1.10.0`. Install the framework peer only for the adapter you import.
+
+## Before you start
+
+Have these from your Zero setup:
+
+- the Zero `schema`;
+- a client, usually exposed through auth or application state;
+- optional `queries` and `mutators` registries.
+
+This package does not create the Zero client or schema. It connects those existing values to your framework.
+
+## Adapters
+
+<CardGrid>
+  <LinkCard
+    title="Vue adapter"
+    href="/guide/adapters/vue"
+    description="Create VueBindings, install it on the app, then use zero.useQuery() and zero.useMutation() in setup."
+  />
+  <LinkCard
+    title="Svelte adapter"
+    href="/guide/adapters/svelte"
+    description="Create SvelteBindings, render ZeroProvider, then use the hooks during component initialization."
+  />
+</CardGrid>
+
+The [API reference](/api) covers exact option and result types. [Development docs](/development) cover adapter development and contributing; application integration belongs in this guide.

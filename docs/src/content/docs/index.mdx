@@ -1,0 +1,72 @@
+---
+title: zero-bindings
+description: Use an existing Zero client through small, typed Vue and Svelte adapters.
+template: splash
+hero:
+  tagline: Typed Zero bindings for Vue and Svelte.
+  actions:
+    - text: Get started
+      link: /guide/
+      icon: right-arrow
+    - text: API reference
+      link: /api/
+      variant: minimal
+---
+
+import { CardGrid, LinkCard } from "@astrojs/starlight/components";
+
+```ts title="zero.ts"
+import { createDefinitions } from "zero-bindings";
+import { VueBindings } from "zero-bindings/vue";
+
+export const zero = VueBindings.create({
+  definitions: createDefinitions({ schema, queries, mutators }),
+  client: () => activeClient.value,
+});
+
+// main.ts
+app.use(zero);
+
+// component
+const issues = zero.useQuery((queries) => queries.issue.all());
+issues.data.value;
+```
+
+Use an existing Zero client from your framework app. `zero-bindings` gives you typed reactive queries and mutations without replacing your framework's state model.
+
+## Choose your adapter
+
+<CardGrid>
+  <LinkCard
+    title="Vue"
+    href="/guide/adapters/vue"
+    description="Install the Vue adapter, add it to your app, and render your first query."
+  />
+  <LinkCard
+    title="Svelte"
+    href="/guide/adapters/svelte"
+    description="Add the Svelte provider, use reactive queries, and run mutations in a component."
+  />
+</CardGrid>
+
+## What you use
+
+- `useQuery()` returns reactive `data`, `status`, and `error` values.
+- `useMutation()` keeps pending, error, and client/server results together.
+- Query arguments and options can follow framework state.
+- Replacing the active Zero client updates active queries without changing component code.
+
+The adapters own framework integration and cleanup. Your application keeps ownership of the Zero client, schema, authentication, and routing.
+
+<CardGrid>
+  <LinkCard
+    title="API reference"
+    href="/api"
+    description="Adapter methods, result shapes, and options."
+  />
+  <LinkCard
+    title="Development"
+    href="/development"
+    description="Adapter development and contributor workflow."
+  />
+</CardGrid>

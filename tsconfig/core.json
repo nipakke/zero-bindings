@@ -1,0 +1,14 @@
+{
+  "extends": "./base.json",
+  "compilerOptions": {},
+  "include": [
+    "../src/core",
+    "../src/index.ts",
+    "../tests/core",
+    "../tests/fixtures/zero.ts",
+    "../tests/fixtures/item.ts",
+    "../tests/fixtures/rows.ts",
+    "../tests/fixtures/fake-adapter.ts",
+    "../tests/fixtures/source.ts"
+  ]
+}
