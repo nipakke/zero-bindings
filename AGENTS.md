@@ -40,7 +40,7 @@
 
 - `pnpm check` is the gate: `vp check` plus `pnpm check-types`.
 - `pnpm check-types` checks the core, Vue, Svelte, Nuxt, and lowest supported Zero 1.7 programs.
-- `pnpm test` runs all Zero matrix projects (`zero-1.7`, `zero-1.8`, `zero-1.9`); `pnpm test:watch` watches.
+- `pnpm test` runs all Zero matrix projects (`zero-1.7`, `zero-1.8`, `zero-1.9`, `zero-1.10`); `pnpm test:watch` watches.
 - `pnpm lint` and `pnpm format` run the corresponding Vite+ commands. There is no build step: `files: ["src"]` and package exports intentionally ship source for bundlers.
 - For docs only, use `pnpm --filter docs dev` or `pnpm --filter docs build`.
 - CI uses pnpm `12.3.4`, Node `24.18.1`, and `pnpm install --frozen-lockfile`.
