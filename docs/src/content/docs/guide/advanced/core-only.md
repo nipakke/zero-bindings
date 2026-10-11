@@ -42,7 +42,7 @@ Three rules cover every core consumer:
 ```json
 {
   "peerDependencies": {
-    "@rocicorp/zero": ">=1.7.0 <1.10.0"
+    "@rocicorp/zero": ">=1.7.0 <1.11.0"
   }
 }
 ```
