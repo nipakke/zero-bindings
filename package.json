@@ -1,6 +1,6 @@
 {
   "name": "zero-bindings",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Framework-neutral Zero query and mutation bindings.",
   "license": "MIT",
   "author": {
