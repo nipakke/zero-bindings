@@ -21,19 +21,19 @@ export type QuerySnapshot<T> = {
 };
 ```
 
-| Status     | Meaning                                                                                            |
-| ---------- | -------------------------------------------------------------------------------------------------- |
-| `disabled` | The resource has no view: `enabled` is `false`, the resolved signal is falsy, or it was disposed.  |
-| `unknown`  | No client is attached yet, or the view has not completed its first read.                           |
-| `cached`   | `data` came from the local cache while the server result is still pending. `complete` replaces it. |
-| `complete` | `data` holds the materialized result.                                                              |
-| `error`    | `error` holds `{ type, message, details? }`; `data` is `undefined`.                                |
+| Status     | Meaning                                                                                                    |
+| ---------- | ---------------------------------------------------------------------------------------------------------- |
+| `disabled` | The resource has no view: `enabled` is `false`, the resolved signal is falsy, or it was disposed.          |
+| `unknown`  | No client is attached yet, or the view has not completed its first read.                                   |
+| `cached`   | `data` is a result the server confirmed on a previous connection. Usable, possibly stale until `complete`. |
+| `complete` | `data` holds the materialized result.                                                                      |
+| `error`    | `error` holds `{ type, message, details? }`; `data` is `undefined`.                                        |
 
 ### Handling `cached`
 
-`cached` means `data` came from the local persisted cache and the server has not confirmed it yet. It is not `complete`: for completeness it behaves like `unknown`. Only a Zero 1.11+ client with persisted state reports it; a local-only client never does.
+`cached` means `data` is a server-confirmed result from a previous sync, restored from the local persisted cache. It is usable but may be stale until the status becomes `complete` (confirmed on the current connection). An empty `cached` result is a confirmed-empty result, so showing the empty state is fine. Only a Zero 1.11+ client with persisted state reports `cached`; a local-only client never does.
 
-Render `cached` data as usable but possibly stale. Show the rows, but do not treat an empty result as confirmed — skip the "not found" empty state until the status is `complete`.
+The example below is for a list query. For `.one()`, test `snapshot.data === undefined` instead of `length`.
 
 ```ts
 switch (snapshot.status) {
@@ -43,9 +43,7 @@ switch (snapshot.status) {
     return renderError(snapshot.error);
   case "unknown":
     return snapshot.data ? renderRows(snapshot.data) : renderLoading();
-  case "cached":
-    // Possibly stale: show rows, no confirmed-empty state.
-    return snapshot.data?.length ? renderRows(snapshot.data) : renderLoading();
+  case "cached": // possibly stale
   case "complete":
     return snapshot.data?.length ? renderRows(snapshot.data) : renderEmpty();
 }

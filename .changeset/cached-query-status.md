@@ -4,4 +4,4 @@
 
 Map Zero 1.11's `cached` result type. `QueryStatus` widens to `"complete" | "cached" | "unknown" | "error" | "disabled"`.
 
-**Possible breaking change:** consumers with exhaustive switches (or narrowed types) on `status` must handle `"cached"`. Migration: treat `"cached"` like `"unknown"`.
+**Possible breaking change:** consumers with exhaustive switches (or narrowed types) on `status` must handle `"cached"`. Migration: treat `"cached"` as usable data from a previous sync, possibly stale until `"complete"`.
