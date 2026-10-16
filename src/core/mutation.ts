@@ -73,9 +73,14 @@ export type MutationInfo = {
 };
 
 export type MutationCallbacks = {
-  onSuccess?: (info: MutationInfo) => void;
+  onSuccess?: (info: MutationInfo & { readonly data?: ReadonlyJSONValue | undefined }) => void;
   onError?: (info: MutationInfo & { readonly error: unknown }) => void;
-  onSettled?: (info: MutationInfo & { readonly error?: unknown }) => void;
+  onSettled?: (
+    info: MutationInfo & {
+      readonly error?: unknown;
+      readonly data?: ReadonlyJSONValue | undefined;
+    },
+  ) => void;
 };
 
 /**
@@ -151,7 +156,7 @@ function mutatorNameOf(request: MutateRequest<ReadonlyJSONValue | undefined, Sch
 /** The leg snapshot a mutator result implies; failures are branded at this boundary. */
 function legFromDetails(details: MutatorResultDetails): MutationLegSnapshot {
   return details.type === "success"
-    ? { status: "success", error: undefined }
+    ? { status: "success", error: undefined, data: details.data }
     : { status: "error", error: brandError(details) };
 }
 
@@ -405,7 +410,7 @@ export class MutationController<
     this.#settleLeg(kind, leg);
 
     if (leg.status === "success") {
-      const info = infoOf(run, kind);
+      const info = { ...infoOf(run, kind), data: leg.data };
       this.#callbacks.onSuccess?.(info);
       this.#callbacks.onSettled?.(info);
     } else {

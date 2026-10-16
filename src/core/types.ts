@@ -33,7 +33,17 @@ export type QueryResource<T> = ObservableResource<QuerySnapshot<T>> & {
 
 export type MutationLegStatus = "idle" | "pending" | "success" | "error" | "unavailable";
 
-export type MutationLegSnapshot = { readonly status: MutationLegStatus; readonly error: unknown };
+/**
+ * One leg of a mutation. Only a landed `success` can carry `data`: the JSON value
+ * the mutator returned on that leg (untyped, as in Zero), absent when it returned nothing.
+ */
+export type MutationLegSnapshot =
+  | { readonly status: Exclude<MutationLegStatus, "success">; readonly error: unknown }
+  | {
+      readonly status: "success";
+      readonly error: undefined;
+      readonly data?: ReadonlyJSONValue | undefined;
+    };
 
 export type MutationSnapshot = {
   readonly client: MutationLegSnapshot;

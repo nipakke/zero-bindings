@@ -11,7 +11,7 @@ import {
   type MutationOptions,
 } from "../../src/core/mutation.ts";
 
-type Settled = MutationInfo & { error?: unknown };
+type Settled = MutationInfo & { error?: unknown; data?: unknown };
 
 /** The request shape the real client accepts: a fake `mutate` forwards it untouched. */
 type MutationRequest = Parameters<Zero<typeof schema>["mutate"]>[0];
@@ -332,6 +332,42 @@ describe("MutationController", () => {
     expect(result.server).toBe(result.client);
     expect((await result.server).type).toBe("success");
     resource.dispose();
+  });
+
+  test("mutator return values surface as leg data on the result, snapshot, and callbacks", async () => {
+    const z = createTestZero({ schema, userID: "test", mutators });
+    const { events, options } = recorder();
+
+    const echo = new MutationController(
+      () => z,
+      () => mutators.item.echo,
+      options,
+    );
+
+    const result = echo.mutate({ id: 1, name: "a" });
+    const outcome = await result.client;
+    const expected = { id: 1, name: "a", tags: ["a", null] };
+    expect(outcome.type === "success" && outcome.data).toEqual(expected);
+    // Substituted server leg is the client promise: it carries the client's data.
+    expect(result.server).toBe(result.client);
+    const leg = echo.getSnapshot().client;
+    expect(leg.status === "success" && leg.data).toEqual(expected);
+    expect(echo.getSnapshot().server.status).toBe("unavailable");
+    expect("data" in echo.getSnapshot().server).toBe(false);
+    expect(events.map((event) => event.phase)).toEqual(["success", "settled"]);
+    expect(events.map((event) => event.info.data)).toEqual([expected, expected]);
+
+    const plain = new MutationController(
+      () => z,
+      () => mutators.item.create,
+    );
+
+    const none = await plain.mutate({ id: 2, name: "b" }).client;
+    expect(none.type === "success" && none.data).toBeUndefined();
+    const plainLeg = plain.getSnapshot().client;
+    expect(plainLeg.status === "success" && plainLeg.data).toBeUndefined();
+    echo.dispose();
+    plain.dispose();
   });
 
   test("a configured but disconnected server never times out the server leg", async () => {
