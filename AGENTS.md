@@ -55,6 +55,6 @@
 
 ## Release and internal contracts
 
-- Add one `.changeset` for each releasable change with `pnpm changeset`. The package is currently private; publishing is disabled.
+- Add one `.changeset` for each releasable change with `pnpm changeset`. The package is public.
 - `.agents/zero-contract.md` pins upstream Zero shapes; `.agents/view-lifecycle.md` owns `ObservableView` sequencing; `.agents/adapter-rules.md` owns host boundaries; `.agents/core-rationale.md` records deliberate deferrals. Update them when code changes invalidate a contract.
 - `ROADMAP.md` contains open work only; do not treat deferred items as shipped behavior.
