@@ -1,7 +1,7 @@
 # View lifecycle
 
 1. **Construct:** create the synthetic root `{ "": format.singular ? undefined : [] }`, obtain the schema, call `setOutput`, register `onTransactionCommit(flush)`, handle `queryComplete`, then hydrate with `skipYields(input.fetch({}))` and `applyChange`.
-2. **Hydrate and push:** hydration applies into a fresh root with `mutate: true`; `push(change)` applies incrementally with a transaction `WeakSet` for copy-on-write, marks dirty, and returns one shared empty stream because this view never yields.
+2. **Hydrate and push:** hydration applies into a fresh root with `mutate: true`; `push(change)` applies incrementally with a transaction `WeakSet` for copy-on-write, marks dirty only when `applyChange` returns a new root (changes outside the view format are no-ops), and returns one shared empty stream because this view never yields.
 3. **Flush:** commit swaps the cached snapshot and notifies once per transaction; reset the transaction `WeakSet`. Snapshot identity stays stable when nothing changed.
 4. **Completion and errors:** `true` is complete, `ErroredQuery` is error, and `Promise<true>` settles asynchronously. Throws from schema/fetch/push/commit and reported query failures become error snapshots, never uncaught materialize/commit failures.
 5. **Cached:** Zero may call the optional `markCached()`/`unmarkCached()` hooks. `markCached` moves only `unknown` to `cached`; `unmarkCached` moves only `cached` to `unknown`; `complete` and `error` are never downgraded and `complete` wins. A call made while rows are unflushed (`#dirty`) is held and folded into the same flush snapshot, so `cached` never publishes before its rows.

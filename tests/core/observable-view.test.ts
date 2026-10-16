@@ -1,4 +1,11 @@
-import type { Change } from "@rocicorp/zero";
+import {
+  createBuilder,
+  createSchema,
+  relationships,
+  string,
+  table,
+  type Change,
+} from "@rocicorp/zero";
 import { describe, expect, test } from "vite-plus/test";
 import { createTestZero } from "../fixtures/zero.ts";
 import { itemSchema as schema, itemZql as zql } from "../fixtures/item.ts";
@@ -464,5 +471,46 @@ describe("ObservableView cached hooks", () => {
     commit();
     expect(view.getSnapshot().status).toBe("unknown");
     expect(calls).toBe(2);
+  });
+});
+
+describe("ObservableView no-op pushes", () => {
+  test("a change to a relationship outside the view format publishes nothing", async () => {
+    const issue = table("issue").columns({ id: string(), title: string() }).primaryKey("id");
+
+    const label = table("label")
+      .columns({ id: string(), issueId: string(), name: string() })
+      .primaryKey("id");
+
+    const issueRelationships = relationships(issue, ({ many }) => ({
+      labels: many({ sourceField: ["id"], destField: ["issueId"], destSchema: label }),
+    }));
+
+    const labelSchema = createSchema({
+      tables: [issue, label],
+      relationships: [issueRelationships],
+      enableLegacyMutators: true,
+    });
+
+    const client = createTestZero({ schema: labelSchema, userID: "noop" });
+    await client.mutate.issue.insert({ id: "i1", title: "t" });
+    await client.mutate.label.insert({ id: "l1", issueId: "i1", name: "bug" });
+
+    const view = client.materialize(
+      createBuilder(labelSchema).issue.whereExists("labels"),
+      observableViewFactory,
+    );
+
+    let calls = 0;
+    view.subscribe(() => {
+      calls++;
+    });
+
+    const before = view.getSnapshot();
+    await client.mutate.label.update({ id: "l1", name: "renamed" });
+
+    expect(calls).toBe(0);
+    expect(view.getSnapshot()).toBe(before);
+    view.destroy();
   });
 });

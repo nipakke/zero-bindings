@@ -222,8 +222,7 @@ export class ObservableView<TReturn> implements Output {
     }
 
     try {
-      this.#dirty = true;
-      this.#root = applyChange(
+      const root = applyChange(
         this.#root,
         changeToViewChange(change),
         this.#schema,
@@ -232,6 +231,12 @@ export class ObservableView<TReturn> implements Output {
         false /* withIDs */,
         this.#txnDirty /* mutate: copy-on-write within this transaction */,
       );
+
+      // Changes outside the view's format return the same root: nothing to publish.
+      if (root !== this.#root) {
+        this.#root = root;
+        this.#dirty = true;
+      }
     } catch (e) {
       // A throwing applyChange must not escape into Zero's commit machinery:
       // settle into the error snapshot and let the consumer render the error.
