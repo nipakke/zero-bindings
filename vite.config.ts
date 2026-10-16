@@ -3,13 +3,13 @@ import { defineConfig } from "vite-plus";
 
 /**
  * Zero versions under test — each needs a matching devDependency alias in
- * package.json (`"zero-1.7": "npm:@rocicorp/zero@1.7.0"`). Every entry here runs
+ * package.json (`"zero-1.11": "npm:@rocicorp/zero@1.11.0"`). Every entry here runs
  * the whole suite as its own Vitest project with `@rocicorp/zero` and its
- * `bindings` subpath resolving to that copy, so `vp test run --project zero-1.7`
+ * `bindings` subpath resolving to that copy, so `vp test run --project zero-1.11`
  * runs one leg. Add or drop a version in this list, in package.json, and in the
- * peer range; `tsconfig/zero-1.7.json` follows the lowest one.
+ * peer range; `tsconfig/zero-1.11.json` follows the lowest one.
  */
-const zeroVersions = ["zero-1.7", "zero-1.8", "zero-1.9", "zero-1.10", "zero-1.11"];
+const zeroVersions = ["zero-1.11"];
 
 export default defineConfig({
   // Compiles the Svelte adapter and its `.svelte` test fixtures; `runes: true`

@@ -1,10 +1,7 @@
-import type { HumanReadable, PromiseWithServerResult, TTL } from "@rocicorp/zero";
+import type { HumanReadable, MutatorResult, ReadonlyJSONValue, TTL } from "@rocicorp/zero";
 
-/**
- * Zero's mutator result — a locally settling `client` leg and the `server` leg.
- * 1.7 exports this type only as `PromiseWithServerResult`; 1.8+ export both names.
- */
-export type MutatorResult = PromiseWithServerResult;
+/** Zero's mutator result — a locally settling `client` leg and the `server` leg. */
+export type { MutatorResult };
 
 export type QueryStatus = "complete" | "cached" | "unknown" | "error" | "disabled";
 

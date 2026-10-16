@@ -246,7 +246,7 @@ export class ObservableView<TReturn> implements Output {
   }
 
   /**
-   * Optional Zero 1.11+ hook (older Zero never calls it): the rows came from
+   * Optional Zero hook: the rows came from
    * the local cache while the server result is still pending. Only moves
    * `unknown` to `cached`; `complete` and `error` are never downgraded.
    */
@@ -254,7 +254,7 @@ export class ObservableView<TReturn> implements Output {
     this.#requestCached("cached");
   }
 
-  /** Optional Zero 1.11+ hook: the cached marker was evicted before the result became authoritative. */
+  /** Optional Zero hook: the cached marker was evicted before the result became authoritative. */
   unmarkCached(): void {
     this.#requestCached("unknown");
   }

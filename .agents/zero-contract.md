@@ -1,6 +1,6 @@
 # Zero contract
 
-Pinned package: `@rocicorp/zero` `1.11.0` in development, peer range `>=1.7.0 <1.12.0`. The test matrix runs `zero-1.7`, `zero-1.8`, `zero-1.9`, `zero-1.10`, and `zero-1.11`; keep this record aligned with `package.json` and `vite.config.ts`. `MutatorResult` is unavailable under that name in 1.7, so `src/core/types.ts` imports the compatible `PromiseWithServerResult` shape. Zero 1.10 clients require a 1.10+ zero-cache (binary poke chunks); the scalar-key rule has zero repo impact.
+Pinned package: `@rocicorp/zero` `1.11.0` in development, peer range `>=1.11.0 <1.12.0`. The test project runs `zero-1.11`; keep this record aligned with `package.json` and `vite.config.ts`. Zero 1.10+ clients require a 1.10+ zero-cache (binary poke chunks); the scalar-key rule has zero repo impact.
 
 ## Materialization surface
 
