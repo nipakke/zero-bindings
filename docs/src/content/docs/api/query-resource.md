@@ -21,13 +21,35 @@ export type QuerySnapshot<T> = {
 };
 ```
 
-| Status     | Meaning                                                                                                             |
-| ---------- | ------------------------------------------------------------------------------------------------------------------- |
-| `disabled` | The resource has no view: `enabled` is `false`, the resolved signal is falsy, or it was disposed.                   |
-| `unknown`  | No client is attached yet, or the view has not completed its first read.                                            |
-| `cached`   | Zero 1.11+ only: `data` came from the local cache while the server result is still pending. `complete` replaces it. |
-| `complete` | `data` holds the materialized result.                                                                               |
-| `error`    | `error` holds `{ type, message, details? }`; `data` is `undefined`.                                                 |
+| Status     | Meaning                                                                                            |
+| ---------- | -------------------------------------------------------------------------------------------------- |
+| `disabled` | The resource has no view: `enabled` is `false`, the resolved signal is falsy, or it was disposed.  |
+| `unknown`  | No client is attached yet, or the view has not completed its first read.                           |
+| `cached`   | `data` came from the local cache while the server result is still pending. `complete` replaces it. |
+| `complete` | `data` holds the materialized result.                                                              |
+| `error`    | `error` holds `{ type, message, details? }`; `data` is `undefined`.                                |
+
+### Handling `cached`
+
+`cached` means `data` came from the local persisted cache and the server has not confirmed it yet. It is not `complete`: for completeness it behaves like `unknown`. Only a Zero 1.11+ client with persisted state reports it; a local-only client never does.
+
+Render `cached` data as usable but possibly stale. Show the rows, but do not treat an empty result as confirmed — skip the "not found" empty state until the status is `complete`.
+
+```ts
+switch (snapshot.status) {
+  case "disabled":
+    return null;
+  case "error":
+    return renderError(snapshot.error);
+  case "unknown":
+    return snapshot.data ? renderRows(snapshot.data) : renderLoading();
+  case "cached":
+    // Possibly stale: show rows, no confirmed-empty state.
+    return snapshot.data?.length ? renderRows(snapshot.data) : renderLoading();
+  case "complete":
+    return snapshot.data?.length ? renderRows(snapshot.data) : renderEmpty();
+}
+```
 
 `getSnapshot()` is cached: consecutive reads without an observable state change are referentially equal. Snapshots are read-only for consumers, and the shape stays exactly three fields — retry decoration and other host-specific values belong in an adapter computed, not here.
 
