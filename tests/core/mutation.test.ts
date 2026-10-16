@@ -370,6 +370,34 @@ describe("MutationController", () => {
     plain.dispose();
   });
 
+  test("data is an absent key, not undefined, when the mutator returned nothing", async () => {
+    const z = createTestZero({ schema, userID: "test", mutators });
+    const { events, options } = recorder();
+
+    const plain = new MutationController(
+      () => z,
+      () => mutators.item.create,
+      options,
+    );
+
+    await plain.mutate({ id: 2, name: "b" }).client;
+    expect("data" in plain.getSnapshot().client).toBe(false);
+    expect(events).toHaveLength(2);
+    expect(events.map((event) => "data" in event.info)).toEqual([false, false]);
+
+    const echo = new MutationController(
+      () => z,
+      () => mutators.item.echo,
+      options,
+    );
+
+    await echo.mutate({ id: 3, name: "c" }).client;
+    expect("data" in echo.getSnapshot().client).toBe(true);
+    expect("data" in (events[2]?.info ?? {})).toBe(true);
+    plain.dispose();
+    echo.dispose();
+  });
+
   test("a configured but disconnected server never times out the server leg", async () => {
     // Offline mutations queue in Zero — its server promise cannot settle any
     // faster than a serverless one's. Only `server`/`connection` are faked;
