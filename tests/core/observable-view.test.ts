@@ -5,6 +5,7 @@ import {
   string,
   table,
   type Change,
+  type ErroredQuery,
 } from "@rocicorp/zero";
 import { describe, expect, test } from "vite-plus/test";
 import { createTestZero } from "../fixtures/zero.ts";
@@ -512,5 +513,93 @@ describe("ObservableView no-op pushes", () => {
     expect(calls).toBe(0);
     expect(view.getSnapshot()).toBe(before);
     view.destroy();
+  });
+});
+
+describe("ObservableView holdData", () => {
+  function held() {
+    const z = createTestZero({ schema, userID: "test" });
+    const input = z.materialize(zql.item, (_q, i) => i);
+    let commit = () => {};
+
+    let reject!: (e: ErroredQuery) => void;
+
+    const pending = new Promise<true>((_resolve, r) => {
+      reject = r;
+    });
+
+    pending.catch(() => {});
+
+    const view = new ObservableView<unknown>(
+      input,
+      { singular: false, relationships: {} },
+      () => {},
+      (cb) => {
+        commit = cb;
+      },
+      pending,
+      () => {},
+    );
+
+    let calls = 0;
+    view.subscribe(() => {
+      calls++;
+    });
+
+    return { view, commit: () => commit(), reject, calls: () => calls };
+  }
+
+  test("markCached waits for the batch commit even with no rows", () => {
+    const { view, commit, calls } = held();
+
+    view.holdData();
+    view.markCached();
+    expect(view.getSnapshot().status).toBe("unknown");
+    expect(calls()).toBe(0);
+
+    commit();
+    expect(view.getSnapshot().status).toBe("cached");
+    expect(calls()).toBe(1);
+  });
+
+  test("a queryComplete rejection waits for the batch commit", async () => {
+    const { view, commit, reject, calls } = held();
+
+    view.holdData();
+    reject({ error: "app", id: "q", name: "q", message: "boom" });
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(view.getSnapshot().status).toBe("unknown");
+    expect(calls()).toBe(0);
+
+    commit();
+    expect(view.getSnapshot().status).toBe("error");
+    expect(view.getSnapshot().error).toEqual({ type: "app", message: "boom" });
+    expect(calls()).toBe(1);
+  });
+
+  test("a push error waits for the batch commit", () => {
+    const { view, commit, calls } = held();
+
+    view.holdData();
+    // SAFETY: the tuple is deliberately not a `Change`; it makes applyChange throw.
+    view.push([99, { id: 1, name: "x" }, null] as never);
+    expect(view.getSnapshot().status).toBe("unknown");
+    expect(calls()).toBe(0);
+
+    commit();
+    expect(view.getSnapshot().status).toBe("error");
+    expect(view.getSnapshot().error?.message).toContain("Unknown change type");
+    expect(calls()).toBe(1);
+  });
+
+  test("a commit with nothing to apply keeps snapshot identity", () => {
+    const { view, commit, calls } = held();
+    const before = view.getSnapshot();
+
+    view.holdData();
+    commit();
+    expect(view.getSnapshot()).toBe(before);
+    expect(calls()).toBe(0);
   });
 });

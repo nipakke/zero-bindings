@@ -12,6 +12,8 @@ Pinned package: `@rocicorp/zero` `1.11.0` in development, peer range `>=1.11.0 <
 
 - Zero 1.11 adds the `cached` result type: `query-delegate-base.js` calls optional view hooks `markCached()`/`unmarkCached()` when a persisted got-key exists from a previous session. `ObservableView` implements them and snapshots widen to `complete | cached | unknown | error | disabled`. Local-only test clients never persist got-keys, so tests exercise the hooks directly.
 
+- Zero 1.11 deferred pipelines: a view materialized before `pipelinesReady` gets a `DeferredInput`; `hydratePendingPipelines` attaches pipelines across several tasks (each attach pushes adds) and commits all views in one synchronous batch. The optional view hooks are `holdData()` before attach and `releaseData()` before commit. `ObservableView` implements only `holdData()`, because its data publishes only at flush.
+
 ## Mutation surface
 
 - A registry mutator is a callable stamped with its dotted `mutatorName`; calling it returns `{ args, "~": "MutateRequest", mutator }`. `src/core/mutation.ts` reads that stamp and otherwise reports `"anonymous"`; it must not reverse-lookup function identity or invent a legacy `mutations` request shape.
