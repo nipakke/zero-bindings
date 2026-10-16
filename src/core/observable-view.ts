@@ -50,6 +50,11 @@ function changeToViewChange(change: Change): ViewChange {
   }
 }
 
+/** The only status a cached transition may leave: `complete` and `error` are never downgraded. */
+function cachedSource(target: "cached" | "unknown"): "cached" | "unknown" {
+  return target === "cached" ? "unknown" : "cached";
+}
+
 /** Whether a materialize completion is a reported failure record rather than a pending promise. */
 function isReportedFailure(value: true | ErroredQuery | Promise<true>): value is ErroredQuery {
   /* oxlint-disable anti-slop/no-runtime-typeof -- this predicate inspects the runtime-reported error channel Zero feeds the factory. */
@@ -107,6 +112,12 @@ export class ObservableView<TReturn> implements Output {
   readonly #store: ObservableStore<QuerySnapshot<HumanReadable<TReturn>>>;
   #root: Entry;
   #dirty = false;
+  /** A `cached`/`unknown` transition requested mid-transaction, applied by the next flush. */
+  #heldCached: "cached" | "unknown" | undefined;
+  /** Set by `holdData()`: a hydration batch is in flight, so transitions wait for the next flush. */
+  #held = false;
+  /** A `queryComplete` rejection received while held, applied by the next flush. */
+  #heldError: QueryError | undefined;
   #txnDirty = new WeakSet<object>();
 
   constructor(
@@ -178,9 +189,17 @@ export class ObservableView<TReturn> implements Output {
           }
         })
         .catch((e: ErroredQuery) => {
-          if (!this.#store.disposed) {
-            this.#setError(e);
+          if (this.#store.disposed) {
+            return;
           }
+
+          if (this.#held) {
+            this.#heldError = toViewError(e);
+
+            return;
+          }
+
+          this.#setError(e);
         });
     }
   }
@@ -215,8 +234,7 @@ export class ObservableView<TReturn> implements Output {
     }
 
     try {
-      this.#dirty = true;
-      this.#root = applyChange(
+      const root = applyChange(
         this.#root,
         changeToViewChange(change),
         this.#schema,
@@ -225,10 +243,20 @@ export class ObservableView<TReturn> implements Output {
         false /* withIDs */,
         this.#txnDirty /* mutate: copy-on-write within this transaction */,
       );
+
+      // Changes outside the view's format return the same root: nothing to publish.
+      if (root !== this.#root) {
+        this.#root = root;
+        this.#dirty = true;
+      }
     } catch (e) {
       // A throwing applyChange must not escape into Zero's commit machinery:
       // settle into the error snapshot and let the consumer render the error.
-      this.#setError(e);
+      if (this.#held) {
+        this.#heldError = toViewError(e);
+      } else {
+        this.#setError(e);
+      }
     }
 
     return EMPTY_STREAM;
@@ -236,6 +264,56 @@ export class ObservableView<TReturn> implements Output {
 
   updateTTL(ttl: TTL): void {
     this.#updateTTL(ttl);
+  }
+
+  /**
+   * Optional Zero hook: the rows came from
+   * the local cache while the server result is still pending. Only moves
+   * `unknown` to `cached`; `complete` and `error` are never downgraded.
+   */
+  markCached(): void {
+    this.#requestCached("cached");
+  }
+
+  /**
+   * Optional Zero hook: called before a deferred pipeline attaches, ahead of a
+   * hydration batch that ends with one transaction commit. Cached transitions
+   * and `queryComplete` rejections wait for that commit's flush. No-op after destroy.
+   */
+  holdData(): void {
+    if (this.#store.disposed) {
+      return;
+    }
+
+    this.#held = true;
+  }
+
+  /** Optional Zero hook: the cached marker was evicted before the result became authoritative. */
+  unmarkCached(): void {
+    this.#requestCached("unknown");
+  }
+
+  /** Applies a cached transition now, or holds it until the in-flight transaction commits so it never precedes its rows. */
+  #requestCached(target: "cached" | "unknown"): void {
+    if (this.#store.disposed) {
+      return;
+    }
+
+    if (this.#dirty || this.#held) {
+      this.#heldCached = target;
+
+      return;
+    }
+
+    this.#applyCached(target);
+  }
+
+  #applyCached(target: "cached" | "unknown"): void {
+    const status = this.#store.getSnapshot().status;
+
+    if (status === cachedSource(target)) {
+      this.#store.publish(this.#withStatus(target));
+    }
   }
 
   /** Terminal teardown: releases the view's consumers and runs zero's on-destroy hook. */
@@ -253,18 +331,34 @@ export class ObservableView<TReturn> implements Output {
   }
 
   #flush(): void {
-    if (!this.#dirty) {
-      return;
+    const wasDirty = this.#dirty;
+    const heldCached = this.#heldCached;
+    const heldError = this.#heldError;
+    this.#dirty = false;
+    this.#held = false;
+    this.#heldCached = undefined;
+    this.#heldError = undefined;
+    const current = this.#store.getSnapshot();
+
+    let status = current.status;
+    let error = current.error;
+
+    if (heldError) {
+      status = "error";
+      error = heldError;
+    } else if (heldCached && current.status === cachedSource(heldCached)) {
+      status = heldCached;
     }
 
-    this.#dirty = false;
-    const current = this.#store.getSnapshot();
+    if (!wasDirty && status === current.status && error === current.error) {
+      return;
+    }
 
     // SAFETY: the synthetic root's "" relationship holds the flushed view data, typed by the query's return.
     const snapshot: QuerySnapshot<HumanReadable<TReturn>> = {
       data: this.#root[""] as HumanReadable<TReturn> | undefined,
-      status: current.status,
-      error: current.error,
+      status,
+      error,
     };
 
     this.#txnDirty = new WeakSet();

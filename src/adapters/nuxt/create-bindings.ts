@@ -20,6 +20,7 @@ import type { BoundSession } from "../../core/session.ts";
 import type { MutationLegSnapshot, QueryStatus } from "../../core/types.ts";
 import { VueBindings, type VueBindingsOptions } from "../vue/create-bindings.ts";
 import type { MaybeQueryResult, UseMutationResult, UseQueryOptions } from "../vue/mirror.ts";
+import { liveDataWins } from "./live-data.ts";
 import { ssrQueryKey } from "./query-key.ts";
 import { runOnce } from "./ssr-run.ts";
 
@@ -80,9 +81,9 @@ function loadPayload<TReturn>(
  *   client: `zero:<hash>:<one|many>`. A later query-getter change keeps the live
  *   path reactive but never re-keys the payload — pass `ssrKey` for that.
  * - While payload rows are showing, `status` is still the live resource's
- *   (`"unknown"` until the client syncs). Templates must gate on `data`, not on
- *   `status`, during takeover.
- * - Live data wins as soon as the live resource reaches `complete` or `error`.
+ *   (`"unknown"` until the client has a result). Templates must gate on `data`,
+ *   not on `status`, during takeover.
+ * - Live data wins as soon as the live resource reaches `cached`, `complete` or `error`.
  *   Payload rows are never written into the Zero cache or the live resource.
  * - The browser calls the same `useAsyncData` key, so an SPA navigation with no
  *   payload re-runs the query client-side — the intended fallback.
@@ -235,14 +236,14 @@ export class NuxtBindings<
     }
 
     // Same key, same handler as the server render: the payload this call finds
-    // is what it shows until the live resource reaches a terminal status.
+    // is what it shows until the live resource reaches `cached`, `complete` or `error`.
     const asyncData = loadPayload(options?.ssrKey ?? ssrQueryKey(resolution.query), () =>
       runOnce(zero, resolution.query),
     );
 
     return {
       data: computed(() =>
-        live.status.value === "complete" || live.status.value === "error"
+        liveDataWins(live.status.value)
           ? live.data.value
           : (asyncData.data.value ?? live.data.value),
       ),

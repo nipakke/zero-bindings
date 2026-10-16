@@ -39,6 +39,11 @@ const itemMutatorDefinitions = {
     create: itemMutator(async ({ tx, args }: ItemArgs<{ id: number; name: string }>) => {
       await tx.mutate.item.insert({ id: args.id, name: args.name });
     }),
+    echo: itemMutator(async ({ tx, args }: ItemArgs<{ id: number; name: string }>) => {
+      await tx.mutate.item.insert({ id: args.id, name: args.name });
+
+      return { id: args.id, name: args.name, tags: ["a", null] };
+    }),
     fail: itemMutator(async ({ args }: ItemArgs<{ id: number }>) => {
       throw new Error(`mutator boom ${args.id}`);
     }),

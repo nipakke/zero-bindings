@@ -1,3 +1,12 @@
+import {
+  createBuilder,
+  createSchema,
+  relationships,
+  string,
+  table,
+  type Change,
+  type ErroredQuery,
+} from "@rocicorp/zero";
 import { describe, expect, test } from "vite-plus/test";
 import { createTestZero } from "../fixtures/zero.ts";
 import { itemSchema as schema, itemZql as zql } from "../fixtures/item.ts";
@@ -322,5 +331,275 @@ describe("ObservableView", () => {
     await Promise.resolve();
     expect(calls).toBe(0);
     expect(view.getSnapshot().status).toBe("unknown");
+  });
+});
+
+describe("ObservableView cached hooks", () => {
+  function add(id: number, name: string): Change {
+    // SAFETY: tuple tag 0 is ChangeType.ADD, the encoding src/core/observable-view.ts decodes.
+    return [0, { row: { id, name }, relationships: {} }, null] as Change;
+  }
+
+  function materialize() {
+    const z = createTestZero({ schema, userID: "test" });
+    // SAFETY: materialize returns the view this factory builds, so the runtime type is
+    // ObservableView; the row type is unknown because these assertions only read snapshot shape.
+    const view = z.materialize(zql.item, observableViewFactory) as ObservableView<unknown>;
+
+    return { z, view };
+  }
+
+  test("markCached moves unknown to cached and unmarkCached moves it back", () => {
+    const { view } = materialize();
+    let calls = 0;
+    view.subscribe(() => {
+      calls++;
+    });
+
+    view.markCached();
+    expect(view.getSnapshot().status).toBe("cached");
+    expect(calls).toBe(1);
+
+    view.markCached();
+    expect(calls).toBe(1);
+
+    view.unmarkCached();
+    expect(view.getSnapshot().status).toBe("unknown");
+    expect(calls).toBe(2);
+
+    view.unmarkCached();
+    expect(calls).toBe(2);
+    view.destroy();
+  });
+
+  test("never downgrades complete or error", async () => {
+    const z = createTestZero({ schema, userID: "test" });
+    const input = z.materialize(zql.item, (_q, i) => i);
+
+    // Build views directly over a completed and an errored queryComplete.
+    const complete = new ObservableView<unknown>(
+      input,
+      { singular: false, relationships: {} },
+      () => {},
+      () => {},
+      true,
+      () => {},
+    );
+
+    expect(complete.getSnapshot().status).toBe("complete");
+    complete.markCached();
+    expect(complete.getSnapshot().status).toBe("complete");
+    complete.unmarkCached();
+    expect(complete.getSnapshot().status).toBe("complete");
+
+    const errored = new ObservableView<unknown>(
+      input,
+      { singular: false, relationships: {} },
+      () => {},
+      () => {},
+      { error: "app", id: "q", name: "q", message: "boom" },
+      () => {},
+    );
+
+    expect(errored.getSnapshot().status).toBe("error");
+    errored.markCached();
+    expect(errored.getSnapshot().status).toBe("error");
+  });
+
+  test("complete wins over a cached marker", async () => {
+    const z = createTestZero({ schema, userID: "test" });
+    const input = z.materialize(zql.item, (_q, i) => i);
+    let resolve!: (v: true) => void;
+
+    const done = new Promise<true>((r) => {
+      resolve = r;
+    });
+
+    const view = new ObservableView<unknown>(
+      input,
+      { singular: false, relationships: {} },
+      () => {},
+      () => {},
+      done,
+      () => {},
+    );
+
+    view.markCached();
+    expect(view.getSnapshot().status).toBe("cached");
+    resolve(true);
+    await done;
+    await Promise.resolve();
+    expect(view.getSnapshot().status).toBe("complete");
+    view.markCached();
+    expect(view.getSnapshot().status).toBe("complete");
+  });
+
+  test("holds the transition until the transaction commits", () => {
+    const z = createTestZero({ schema, userID: "test" });
+    const input = z.materialize(zql.item, (_q, i) => i);
+    let commit = () => {};
+
+    const view = new ObservableView<unknown>(
+      input,
+      { singular: false, relationships: {} },
+      () => {},
+      (cb) => {
+        commit = cb;
+      },
+      new Promise<true>(() => {}),
+      () => {},
+    );
+
+    let calls = 0;
+    view.subscribe(() => {
+      calls++;
+    });
+
+    // A push marks the transaction dirty; the marker must wait for the commit.
+    view.push(add(1, "a"));
+    view.markCached();
+    expect(view.getSnapshot().status).toBe("unknown");
+    expect(calls).toBe(0);
+
+    commit();
+    expect(view.getSnapshot().status).toBe("cached");
+    expect(rows(view.getSnapshot().data)).toEqual([{ id: 1, name: "a" }]);
+    expect(calls).toBe(1);
+
+    view.push(add(2, "b"));
+    view.unmarkCached();
+    expect(view.getSnapshot().status).toBe("cached");
+    commit();
+    expect(view.getSnapshot().status).toBe("unknown");
+    expect(calls).toBe(2);
+  });
+});
+
+describe("ObservableView no-op pushes", () => {
+  test("a change to a relationship outside the view format publishes nothing", async () => {
+    const issue = table("issue").columns({ id: string(), title: string() }).primaryKey("id");
+
+    const label = table("label")
+      .columns({ id: string(), issueId: string(), name: string() })
+      .primaryKey("id");
+
+    const issueRelationships = relationships(issue, ({ many }) => ({
+      labels: many({ sourceField: ["id"], destField: ["issueId"], destSchema: label }),
+    }));
+
+    const labelSchema = createSchema({
+      tables: [issue, label],
+      relationships: [issueRelationships],
+      enableLegacyMutators: true,
+    });
+
+    const client = createTestZero({ schema: labelSchema, userID: "noop" });
+    await client.mutate.issue.insert({ id: "i1", title: "t" });
+    await client.mutate.label.insert({ id: "l1", issueId: "i1", name: "bug" });
+
+    const view = client.materialize(
+      createBuilder(labelSchema).issue.whereExists("labels"),
+      observableViewFactory,
+    );
+
+    let calls = 0;
+    view.subscribe(() => {
+      calls++;
+    });
+
+    const before = view.getSnapshot();
+    await client.mutate.label.update({ id: "l1", name: "renamed" });
+
+    expect(calls).toBe(0);
+    expect(view.getSnapshot()).toBe(before);
+    view.destroy();
+  });
+});
+
+describe("ObservableView holdData", () => {
+  function held() {
+    const z = createTestZero({ schema, userID: "test" });
+    const input = z.materialize(zql.item, (_q, i) => i);
+    let commit = () => {};
+
+    let reject!: (e: ErroredQuery) => void;
+
+    const pending = new Promise<true>((_resolve, r) => {
+      reject = r;
+    });
+
+    pending.catch(() => {});
+
+    const view = new ObservableView<unknown>(
+      input,
+      { singular: false, relationships: {} },
+      () => {},
+      (cb) => {
+        commit = cb;
+      },
+      pending,
+      () => {},
+    );
+
+    let calls = 0;
+    view.subscribe(() => {
+      calls++;
+    });
+
+    return { view, commit: () => commit(), reject, calls: () => calls };
+  }
+
+  test("markCached waits for the batch commit even with no rows", () => {
+    const { view, commit, calls } = held();
+
+    view.holdData();
+    view.markCached();
+    expect(view.getSnapshot().status).toBe("unknown");
+    expect(calls()).toBe(0);
+
+    commit();
+    expect(view.getSnapshot().status).toBe("cached");
+    expect(calls()).toBe(1);
+  });
+
+  test("a queryComplete rejection waits for the batch commit", async () => {
+    const { view, commit, reject, calls } = held();
+
+    view.holdData();
+    reject({ error: "app", id: "q", name: "q", message: "boom" });
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(view.getSnapshot().status).toBe("unknown");
+    expect(calls()).toBe(0);
+
+    commit();
+    expect(view.getSnapshot().status).toBe("error");
+    expect(view.getSnapshot().error).toEqual({ type: "app", message: "boom" });
+    expect(calls()).toBe(1);
+  });
+
+  test("a push error waits for the batch commit", () => {
+    const { view, commit, calls } = held();
+
+    view.holdData();
+    // SAFETY: the tuple is deliberately not a `Change`; it makes applyChange throw.
+    view.push([99, { id: 1, name: "x" }, null] as never);
+    expect(view.getSnapshot().status).toBe("unknown");
+    expect(calls()).toBe(0);
+
+    commit();
+    expect(view.getSnapshot().status).toBe("error");
+    expect(view.getSnapshot().error?.message).toContain("Unknown change type");
+    expect(calls()).toBe(1);
+  });
+
+  test("a commit with nothing to apply keeps snapshot identity", () => {
+    const { view, commit, calls } = held();
+    const before = view.getSnapshot();
+
+    view.holdData();
+    commit();
+    expect(view.getSnapshot()).toBe(before);
+    expect(calls()).toBe(0);
   });
 });

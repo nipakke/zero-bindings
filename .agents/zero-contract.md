@@ -1,6 +1,6 @@
 # Zero contract
 
-Pinned package: `@rocicorp/zero` `1.10.0` in development, peer range `>=1.7.0 <1.11.0`. The test matrix runs `zero-1.7`, `zero-1.8`, `zero-1.9`, and `zero-1.10`; keep this record aligned with `package.json` and `vite.config.ts`. `MutatorResult` is unavailable under that name in 1.7, so `src/core/types.ts` imports the compatible `PromiseWithServerResult` shape. Zero 1.10 clients require a 1.10+ zero-cache (binary poke chunks); the scalar-key rule has zero repo impact.
+Pinned package: `@rocicorp/zero` `1.11.0` in development, peer range `>=1.11.0 <1.12.0`. The test project runs `zero-1.11`; keep this record aligned with `package.json` and `vite.config.ts`. Zero 1.10+ clients require a 1.10+ zero-cache (binary poke chunks); the scalar-key rule has zero repo impact.
 
 ## Materialization surface
 
@@ -10,6 +10,10 @@ Pinned package: `@rocicorp/zero` `1.10.0` in development, peer range `>=1.7.0 <1
 - Core imports `applyChange`, `skipYields`, and `DEFAULT_TTL_MS` from `@rocicorp/zero/bindings`. Change tuples are `ADD=0`, `REMOVE=1`, `EDIT=2`, `CHILD=3`; keep the decoder in `src/core/observable-view.ts` synchronized with that upstream encoding.
 - `ErroredQuery` may omit `message`; `ObservableView` falls back to `"An unknown error occurred"` when normalizing it. Materialization receives `{ ttl }`; `QueryController` supplies `ttl ?? DEFAULT_TTL_MS`.
 
+- Zero 1.11 adds the `cached` result type: `query-delegate-base.js` calls optional view hooks `markCached()`/`unmarkCached()` when a persisted got-key exists from a previous session. `ObservableView` implements them and snapshots widen to `complete | cached | unknown | error | disabled`. Local-only test clients never persist got-keys, so tests exercise the hooks directly.
+
+- Zero 1.11 deferred pipelines: a view materialized before `pipelinesReady` gets a `DeferredInput`; `hydratePendingPipelines` attaches pipelines across several tasks (each attach pushes adds) and commits all views in one synchronous batch. The optional view hooks are `holdData()` before attach and `releaseData()` before commit. `ObservableView` implements only `holdData()`, because its data publishes only at flush.
+
 ## Mutation surface
 
 - A registry mutator is a callable stamped with its dotted `mutatorName`; calling it returns `{ args, "~": "MutateRequest", mutator }`. `src/core/mutation.ts` reads that stamp and otherwise reports `"anonymous"`; it must not reverse-lookup function identity or invent a legacy `mutations` request shape.
@@ -18,4 +22,5 @@ Pinned package: `@rocicorp/zero` `1.10.0` in development, peer range `>=1.7.0 <1
 ## Local-only clients
 
 - Tests use the deprecated `server: null` spelling for `cacheURL: null`. Zero still returns both legs: the client leg settles locally, while the underlying server promise remains pending. Core treats a non-`connected` server as unavailable in the snapshot and returns the client promise for `result.server`.
+- Mutators may return `ReadonlyJSONValue | void`. `MutatorResultDetails` is `{ type: "success"; data?: ReadonlyJSONValue } | { type: "error"; error }`; `data` is never typed to the mutator's return, and the client and server runs each produce their own. Core copies `data` onto success leg snapshots and success/settled callback info only; with the server unavailable, `mutate().server` is the client promise, so its `data` is the client's.
 - Closing a client with outstanding local-only server legs is noisy by Zero design: those legs reject and Zero logs one error per outstanding mutation. Await seed writes before closing; each playground's `retire()` owns that ordering (`playgrounds/vue/src/zero/workspace.ts`, `playgrounds/nuxt/app/plugins/zero.ts`, `playgrounds/sveltekit/src/lib/zero/workspace.svelte.ts`).

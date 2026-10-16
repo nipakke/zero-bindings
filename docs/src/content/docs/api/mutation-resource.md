@@ -9,10 +9,13 @@ A mutation resource owns its client and server legs and publishes one cached sna
 ```ts
 export type MutationLegStatus = "idle" | "pending" | "success" | "error" | "unavailable";
 
-export type MutationLegSnapshot = {
-  readonly status: MutationLegStatus;
-  readonly error: unknown;
-};
+export type MutationLegSnapshot =
+  | { readonly status: Exclude<MutationLegStatus, "success">; readonly error: unknown }
+  | {
+      readonly status: "success";
+      readonly error: undefined;
+      readonly data?: ReadonlyJSONValue | undefined;
+    };
 
 export type MutationSnapshot = {
   readonly client: MutationLegSnapshot;
@@ -29,6 +32,14 @@ export type MutationSnapshot = {
 | `unavailable` | No server leg to await at call time: no server configured, or none connected. |
 
 Leg errors are typed `unknown`: Zero mutator error details are reported as a branded `MutationError` at the settle boundary (see [Options](#options)), and any other rejection reason passes through unchanged — formatting belongs to the application.
+
+### Mutation data
+
+A mutator may return a JSON value. On a `success` leg it appears as `data` in the snapshot, in the awaited `{ client, server }` details (`{ type: "success", data }`), and in the `onSuccess`/`onSettled` info. `data` is absent when the mutator returned nothing, and never present on `idle`, `pending`, `error`, or `unavailable` legs.
+
+- **Untyped.** `data` is `ReadonlyJSONValue | undefined`, not the mutator's declared return type; Zero does not carry that type through. Narrow it in application code.
+- **Legs differ.** The client and server run the mutator separately, so each leg has its own `data`; the server's value may differ from the client's.
+- **Substituted server leg.** When no server leg can settle, `mutate()` returns the client promise as `server`, so `await result.server` yields the client's `data`. The snapshot's server leg is `unavailable` and has no `data`.
 
 ## `MutationResource`
 
@@ -68,9 +79,14 @@ export type MutationInfo = {
 };
 
 export type MutationCallbacks = {
-  onSuccess?: (info: MutationInfo) => void;
+  onSuccess?: (info: MutationInfo & { readonly data?: ReadonlyJSONValue | undefined }) => void;
   onError?: (info: MutationInfo & { readonly error: unknown }) => void;
-  onSettled?: (info: MutationInfo & { readonly error?: unknown }) => void;
+  onSettled?: (
+    info: MutationInfo & {
+      readonly error?: unknown;
+      readonly data?: ReadonlyJSONValue | undefined;
+    },
+  ) => void;
 };
 
 export type MutationOptions = MutationCallbacks & {
