@@ -55,7 +55,7 @@ type UseQueryOptions = {
 
 type MaybeQueryResult<T> = {
   readonly data: HumanReadable<T> | undefined;
-  readonly status: "disabled" | "unknown" | "complete" | "error";
+  readonly status: "disabled" | "unknown" | "cached" | "complete" | "error";
   readonly error: (QueryError & { retry(): void }) | undefined;
 };
 ```

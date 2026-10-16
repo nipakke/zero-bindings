@@ -16,6 +16,7 @@ updates:
       - dependency-name: "zero-1.8"
       - dependency-name: "zero-1.9"
       - dependency-name: "zero-1.10"
+      - dependency-name: "zero-1.11"
 
   - package-ecosystem: github-actions
     directory: "/"

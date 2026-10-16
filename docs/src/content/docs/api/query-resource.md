@@ -7,7 +7,7 @@ One materialized query: its inputs, its Zero view, and the cached snapshot consu
 ## Snapshots
 
 ```ts
-export type QueryStatus = "complete" | "unknown" | "error" | "disabled";
+export type QueryStatus = "complete" | "cached" | "unknown" | "error" | "disabled";
 
 export type QueryError = { type: string; message: string; details?: unknown };
 
@@ -21,12 +21,13 @@ export type QuerySnapshot<T> = {
 };
 ```
 
-| Status     | Meaning                                                                                           |
-| ---------- | ------------------------------------------------------------------------------------------------- |
-| `disabled` | The resource has no view: `enabled` is `false`, the resolved signal is falsy, or it was disposed. |
-| `unknown`  | No client is attached yet, or the view has not completed its first read.                          |
-| `complete` | `data` holds the materialized result.                                                             |
-| `error`    | `error` holds `{ type, message, details? }`; `data` is `undefined`.                               |
+| Status     | Meaning                                                                                                             |
+| ---------- | ------------------------------------------------------------------------------------------------------------------- |
+| `disabled` | The resource has no view: `enabled` is `false`, the resolved signal is falsy, or it was disposed.                   |
+| `unknown`  | No client is attached yet, or the view has not completed its first read.                                            |
+| `cached`   | Zero 1.11+ only: `data` came from the local cache while the server result is still pending. `complete` replaces it. |
+| `complete` | `data` holds the materialized result.                                                                               |
+| `error`    | `error` holds `{ type, message, details? }`; `data` is `undefined`.                                                 |
 
 `getSnapshot()` is cached: consecutive reads without an observable state change are referentially equal. Snapshots are read-only for consumers, and the shape stays exactly three fields — retry decoration and other host-specific values belong in an adapter computed, not here.
 

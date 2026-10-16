@@ -51,7 +51,7 @@ type UseQueryOptions = {
 
 type MaybeQueryResult<T> = {
   data: ComputedRef<HumanReadable<T> | undefined>;
-  status: ComputedRef<"disabled" | "unknown" | "complete" | "error">;
+  status: ComputedRef<"disabled" | "unknown" | "cached" | "complete" | "error">;
   error: ComputedRef<(QueryError & { retry(): void }) | undefined>;
 };
 ```

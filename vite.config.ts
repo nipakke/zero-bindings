@@ -9,7 +9,7 @@ import { defineConfig } from "vite-plus";
  * runs one leg. Add or drop a version in this list, in package.json, and in the
  * peer range; `tsconfig/zero-1.7.json` follows the lowest one.
  */
-const zeroVersions = ["zero-1.7", "zero-1.8", "zero-1.9", "zero-1.10"];
+const zeroVersions = ["zero-1.7", "zero-1.8", "zero-1.9", "zero-1.10", "zero-1.11"];
 
 export default defineConfig({
   // Compiles the Svelte adapter and its `.svelte` test fixtures; `runes: true`

@@ -12,7 +12,7 @@
 - `Source<T>` is pull-plus-subscribe: notifications carry no value; consumers call `get()`. Constants are normalized with `toSource()`.
 - `ZeroSession` owns the current client source, definitions, resource registration, active-query client replacement, and resource disposal. It does not close the Zero client.
 - Query resources are inert until `start()`. They own query, `enabled`, and TTL inputs; unchanged resolved keys keep the live view. `stop()` retains the last snapshot; `dispose()` is terminal and resets to `disabled`.
-- Query snapshots are `complete | unknown | error | disabled`; data may be `undefined`. A local-only client streams rows while remaining `unknown`.
+- Query snapshots are `complete | cached | unknown | error | disabled`; data may be `undefined`. A local-only client streams rows while remaining `unknown`. `cached` comes only from Zero 1.11+ view hooks.
 - `ObservableView` is the only framework-neutral Zero `Output`: hydrate with `fetch`/`skipYields`, apply changes, flush once per transaction, and expose cached snapshots.
 - Mutation resources take only mutator arguments and return a two-leg result shaped like Zero's `{client, server}` result; when the server is unavailable, core substitutes the client promise. One generation is active at a time; `reset()`, disposal, or a second call retires older settles. Session client replacement restarts active queries, not mutation generations.
 - Mutation callbacks are configured at session `mutations` defaults and resource `MutationOptions`, defaults first. Only landed client/server settles—including timeout errors—call callbacks; `unavailable` is snapshot-only. Resolved Zero failures become `MutationError` with the raw record as `cause`; timeouts become `MutationTimeoutError`.
@@ -40,7 +40,7 @@
 
 - `pnpm check` is the gate: `vp check` plus `pnpm check-types`.
 - `pnpm check-types` checks the core, Vue, Svelte, Nuxt, and lowest supported Zero 1.7 programs.
-- `pnpm test` runs all Zero matrix projects (`zero-1.7`, `zero-1.8`, `zero-1.9`, `zero-1.10`); `pnpm test:watch` watches.
+- `pnpm test` runs all Zero matrix projects (`zero-1.7`, `zero-1.8`, `zero-1.9`, `zero-1.10`, `zero-1.11`); `pnpm test:watch` watches.
 - `pnpm lint` and `pnpm format` run the corresponding Vite+ commands. There is no build step: `files: ["src"]` and package exports intentionally ship source for bundlers.
 - For docs only, use `pnpm --filter docs dev` or `pnpm --filter docs build`.
 - CI uses pnpm `12.3.4`, Node `24.18.1`, and `pnpm install --frozen-lockfile`.

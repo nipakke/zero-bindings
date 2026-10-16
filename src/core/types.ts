@@ -6,7 +6,7 @@ import type { HumanReadable, PromiseWithServerResult, TTL } from "@rocicorp/zero
  */
 export type MutatorResult = PromiseWithServerResult;
 
-export type QueryStatus = "complete" | "unknown" | "error" | "disabled";
+export type QueryStatus = "complete" | "cached" | "unknown" | "error" | "disabled";
 
 /** Query data as published to consumers: absent before a client, while disabled, or for empty singular queries. */
 export type QueryResult<TReturn> = HumanReadable<TReturn> | undefined;
